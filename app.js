@@ -53,12 +53,21 @@ module.exports = app => {
     }));
 
     const flyme = app.passport.authenticate('flyme', {});
-    app.get('/passport/flyme', async (ctx, next)=>{
+    const isAuthenticated = async (ctx, next) =>{
+        if( ctx.isAuthenticated() ){
+            let url = ctx.request.headers['referer'] || '/';
+            ctx.redirect(url);
+        } else {
+            await next();
+        }
+
+    };
+    app.get('/passport/flyme',isAuthenticated,  async (ctx, next)=>{
         const appuri = encodeURIComponent(`${ctx.origin}${config.callbackURL}`);
         const useruri = encodeURIComponent(ctx.params.useruri || ctx.origin);
         const url = `https://login.in.meizu.com/sso?lang=en_US&appuri=${appuri}&service=${config.service}&useruri=${useruri}`;
         ctx.redirect(url);
     });
 
-    app.get('/passport/flyme/callback', flyme);
+    app.get('/passport/flyme/callback', isAuthenticated, flyme);
 };
